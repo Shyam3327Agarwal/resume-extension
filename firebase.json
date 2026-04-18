@@ -1,24 +1,13 @@
 {
-  "functions": {
-    "source": ".",
-    "ignore": [
-      "dashboard",
-      "extension",
-      "node_modules",
-      ".git",
-      ".firebaserc",
-      "firebase.json",
-      "firebase-debug.log",
-      "firebase-debug.*.log"
-    ]
-  },
+  "functions": [
+    {
+      "source": ".",
+      "codebase": "default",
+      "ignore": []
+    }
+  ],
   "hosting": {
     "public": "dashboard/dist/dashboard/browser",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
     "rewrites": [
       {
         "source": "/api/**",
