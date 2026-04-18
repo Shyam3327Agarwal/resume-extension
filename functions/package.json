@@ -1,5 +1,5 @@
 {
-  "name": "cv-reviewer-backend",
+  "name": "functions",
   "version": "1.0.0",
   "description": "Backend for CV Reviewer Chrome Extension",
   "main": "index.js",
@@ -17,7 +17,7 @@
     "mongoose": "^9.4.1"
   },
   "engines": {
-    "node": "22"
+    "node": "20"
   },
   "devDependencies": {
     "node-fetch": "^2.7.0"
