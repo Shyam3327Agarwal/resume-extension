@@ -12,47 +12,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Firebase Admin Initialization
-if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    }),
-  });
-  console.log('Firebase Admin initialized');
-} else {
-  console.warn('WARNING: Firebase credentials are not fully set in .env. Auth will fail.');
-}
+// Firebase Admin Initialization (Standard for Cloud Functions)
+admin.initializeApp();
+console.log('Firebase Admin initialized');
 
 // MongoDB Connection
 if (process.env.MONGODB_URI) {
   mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('Connected to MongoDB'))
     .catch(err => console.error('MongoDB connection error:', err));
-} else {
-  console.warn('WARNING: MONGODB_URI is not set. Database operations will fail.');
 }
 
-// Sync Firebase User to MongoDB (creates a personal org for new users)
-app.post('/api/users/sync', authenticateToken, async (req, res) => {
-  try {
-    const { uid, email } = req.user;
-    let user = await User.findOne({ firebaseUid: uid });
-    if (!user) {
-      // Create a personal org for this new user
-      const org = new Organization({ name: `${email}'s Organization` });
-      await org.save();
-      user = new User({ firebaseUid: uid, email: email || 'unknown', organizationId: org._id });
-      await user.save();
-    }
-    res.json({ message: 'User synced successfully', user });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to sync user' });
-  }
-});
+// Health check
+app.get('/api/health', (req, res) => res.json({ status: 'ok', environment: 'production' }));
 
 // Middleware to protect routes
 async function authenticateToken(req, res, next) {
@@ -71,6 +43,32 @@ async function authenticateToken(req, res, next) {
   }
 }
 
+// Admin middleware
+async function requireAdmin(req, res, next) {
+  if (!req.user || !req.user.admin) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+}
+
+// Sync Firebase User to MongoDB
+app.post('/api/users/sync', authenticateToken, async (req, res) => {
+  try {
+    const { uid, email } = req.user;
+    let user = await User.findOne({ firebaseUid: uid });
+    if (!user) {
+      const org = new Organization({ name: `${email}'s Organization` });
+      await org.save();
+      user = new User({ firebaseUid: uid, email: email || 'unknown', organizationId: org._id });
+      await user.save();
+    }
+    res.json({ message: 'User synced successfully', user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to sync user' });
+  }
+});
+
 // Settings Endpoint
 app.put('/api/users/settings', authenticateToken, async (req, res) => {
   try {
@@ -85,7 +83,7 @@ app.put('/api/users/settings', authenticateToken, async (req, res) => {
   }
 });
 
-// Roles Endpoints (scoped to user's organization)
+// Roles Endpoints
 app.get('/api/roles', authenticateToken, async (req, res) => {
   try {
     const user = await User.findOne({ firebaseUid: req.user.uid });
@@ -139,26 +137,19 @@ app.delete('/api/roles/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Evaluate CV against a role
+// Evaluate CV
 app.post('/api/evaluate', authenticateToken, async (req, res) => {
   const { cvText, roleId, candidateName } = req.body;
-
-  if (!cvText || !roleId) {
-    return res.status(400).json({ error: 'cvText and roleId are required' });
-  }
+  if (!cvText || !roleId) return res.status(400).json({ error: 'cvText and roleId are required' });
 
   try {
     const role = await Role.findOne({ id: roleId });
-    if (!role) {
-      return res.status(404).json({ error: 'Role not found' });
-    }
+    if (!role) return res.status(404).json({ error: 'Role not found' });
 
-    // --- Mock Evaluation Logic ---
     const lowerCvText = cvText.toLowerCase();
-    
     const strengths = [];
     const weaknesses = [];
-    let score = 50; // Base score
+    let score = 50;
     
     role.requirements.forEach(reqItem => {
       if (lowerCvText.includes(reqItem.toLowerCase())) {
@@ -171,63 +162,31 @@ app.post('/api/evaluate', authenticateToken, async (req, res) => {
     });
 
     score = Math.max(0, Math.min(100, score));
+    let summary = score > 80 ? "Excellent fit" : score > 50 ? "Good fit" : "Poor fit";
 
-    let summary = "";
-    if (score > 80) summary = "Excellent fit for the role based on keyword matching.";
-    else if (score > 50) summary = "Good fit, but missing some key requirements.";
-    else summary = "Might not be the best fit. Missing several key skills.";
-
-    // Attempt to find user
-    let user = null;
-    if (req.user && req.user.uid) {
-      user = await User.findOne({ firebaseUid: req.user.uid });
-    }
-
-    const evaluationResult = {
-      score,
-      summary,
-      strengths,
-      weaknesses
-    };
-
+    let user = await User.findOne({ firebaseUid: req.user.uid });
     if (user) {
-      try {
-        const evalDoc = new Evaluation({
-          userId: user._id,
-          roleId: roleId,
-          candidateName: candidateName || "Unknown",
-          cvText: cvText,
-          score,
-          summary,
-          strengths,
-          weaknesses
-        });
-        await evalDoc.save();
-        console.log('Evaluation saved to database');
-      } catch (dbErr) {
-        console.error('Error saving evaluation to DB:', dbErr);
-      }
+      const evalDoc = new Evaluation({
+        userId: user._id,
+        roleId: roleId,
+        candidateName: candidateName || "Unknown",
+        cvText,
+        score,
+        summary,
+        strengths,
+        weaknesses
+      });
+      await evalDoc.save();
     }
 
-    setTimeout(() => {
-      res.json(evaluationResult);
-    }, 1500);
-
+    res.json({ score, summary, strengths, weaknesses });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Evaluation failed' });
   }
 });
 
-// Admin middleware
-async function requireAdmin(req, res, next) {
-  if (!req.user || !req.user.admin) {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
-  next();
-}
-
-// Admin: List all users
+// Admin Users
 app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const listUsersResult = await admin.auth().listUsers(1000);
@@ -236,47 +195,31 @@ app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) =>
       email: u.email,
       displayName: u.displayName,
       disabled: u.disabled,
-      createdAt: u.metadata.creationTime,
       lastSignIn: u.metadata.lastSignInTime,
     }));
     res.json(users);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: 'Failed to list users' });
   }
 });
 
-// Admin: Disable a user
 app.post('/api/admin/users/:uid/disable', authenticateToken, requireAdmin, async (req, res) => {
   try {
     await admin.auth().updateUser(req.params.uid, { disabled: true });
-    res.json({ message: `User ${req.params.uid} has been disabled` });
+    res.json({ message: 'User disabled' });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: 'Failed to disable user' });
   }
 });
 
-// Admin: Enable a user
 app.post('/api/admin/users/:uid/enable', authenticateToken, requireAdmin, async (req, res) => {
   try {
     await admin.auth().updateUser(req.params.uid, { disabled: false });
-    res.json({ message: `User ${req.params.uid} has been enabled` });
+    res.json({ message: 'User enabled' });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: 'Failed to enable user' });
   }
 });
 
 const functions = require('firebase-functions');
-
-// Export for Firebase Functions
 exports.api = functions.https.onRequest(app);
-
-// Keep local server functionality
-if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`Local server running on port ${PORT}`);
-  });
-}
