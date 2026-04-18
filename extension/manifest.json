@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "CV Reviewer Pro",
+  "version": "1.0",
+  "description": "AI-powered Chrome extension to review candidate profiles and CVs against Job Descriptions.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "http://localhost:3000/*"
+  ]
+}

@@ -1,0 +1,77 @@
+<div class="dashboard-layout">
+  <nav class="top-nav glass-card">
+    <div class="nav-content">
+      <div class="brand">
+        <div class="logo-sm">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z"/></svg>
+        </div>
+        <span>CV Admin</span>
+      </div>
+      
+      <div class="nav-links">
+        <a routerLink="/roles" routerLinkActive="active" class="nav-link">📁 Roles</a>
+        <a routerLink="/settings" routerLinkActive="active" class="nav-link">⚙️ Settings</a>
+        <a routerLink="/admin" routerLinkActive="active" class="nav-link">🛡️ Admin</a>
+      </div>
+
+      <div class="user-profile" (click)="auth.logout()">
+        <img [src]="(auth.user$ | async)?.photoURL || 'https://ui-avatars.com/api/?name=User&background=8b5cf6&color=fff'" alt="Avatar">
+        <span>Logout</span>
+      </div>
+    </div>
+  </nav>
+
+  <main class="content-area container">
+    <header class="page-header animate-up">
+      <div class="header-text">
+        <h2>System Users</h2>
+        <p>Manage access control and account status for all users</p>
+      </div>
+    </header>
+
+    <div class="glass-card table-wrapper animate-up">
+      <div *ngIf="loading" class="loading-state">
+        <div class="pulse-loader"></div>
+        <p>Loading users...</p>
+      </div>
+
+      <table *ngIf="!loading && users.length > 0" class="modern-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>ID</th>
+            <th>Last Active</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users">
+            <td>
+              <div class="user-info">
+                <span class="user-email">{{ user.email }}</span>
+                <span class="user-name">{{ user.displayName || 'Unnamed User' }}</span>
+              </div>
+            </td>
+            <td><code>{{ user.uid | slice:0:8 }}...</code></td>
+            <td>{{ user.lastSignIn | date:'mediumDate' }}</td>
+            <td>
+              <span [class]="'badge ' + (user.disabled ? 'badge-error' : 'badge-success')">
+                {{ user.disabled ? 'Suspended' : 'Active' }}
+              </span>
+            </td>
+            <td>
+              <button [class]="'btn-modern ' + (user.disabled ? 'btn-secondary' : 'btn-danger')" (click)="toggleUser(user)">
+                {{ user.disabled ? 'Activate' : 'Suspend' }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div *ngIf="!loading && users.length === 0" class="empty-state">
+        <p>No users found in the system.</p>
+      </div>
+    </div>
+  </main>
+</div>

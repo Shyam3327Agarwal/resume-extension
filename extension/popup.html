@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CV Reviewer Pro</title>
+  <link rel="stylesheet" href="popup.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header>
+      <h1>CV Reviewer Pro</h1>
+      <button id="logoutBtn" class="hidden">Logout</button>
+    </header>
+
+    <!-- Login View -->
+    <div id="loginView" class="view">
+      <p class="subtitle">Log in to sync your roles</p>
+      <form id="loginForm">
+        <div class="input-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="e.g. recruiter@company.com" required>
+        </div>
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Any password works for demo" required>
+        </div>
+        <button type="submit" class="btn primary-btn">Sign In</button>
+      </form>
+      <div id="loginError" class="error-msg hidden"></div>
+    </div>
+
+    <!-- Main View -->
+    <div id="mainView" class="view hidden">
+      <div class="card">
+        <label for="roleSelect">Select Job Description</label>
+        <select id="roleSelect">
+          <option value="" disabled selected>Loading roles...</option>
+        </select>
+        
+        <button id="reviewBtn" class="btn primary-btn" disabled>Review Current Profile</button>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loadingState" class="hidden">
+        <div class="spinner"></div>
+        <p>Analyzing profile with AI...</p>
+      </div>
+
+      <!-- Results View -->
+      <div id="resultsView" class="hidden">
+        <div class="score-card">
+          <h3>Compatibility Score</h3>
+          <div class="score-ring">
+            <span id="scoreValue">0</span>%
+          </div>
+        </div>
+        
+        <div class="analysis">
+          <p id="summaryText"></p>
+          
+          <h4>Strengths</h4>
+          <ul id="strengthsList" class="positive-list"></ul>
+          
+          <h4>Areas for Improvement</h4>
+          <ul id="weaknessesList" class="negative-list"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
