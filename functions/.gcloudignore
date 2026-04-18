@@ -1,6 +1,0 @@
-node_modules/
-.npm-cache/
-.env
-.git
-.gitignore
-*.log
