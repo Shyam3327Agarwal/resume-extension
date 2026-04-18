@@ -1,8 +1,10 @@
 {
-  "name": "functions",
+  "name": "cv-reviewer-api",
   "version": "1.0.0",
-  "description": "Backend for CV Reviewer Chrome Extension",
   "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -11,8 +13,5 @@
     "firebase-functions": "^7.2.5",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^9.4.1"
-  },
-  "devDependencies": {
-    "node-fetch": "^2.7.0"
   }
 }

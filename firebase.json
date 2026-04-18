@@ -1,9 +1,13 @@
 {
   "functions": {
-    "source": "functions",
+    "source": ".",
     "ignore": [
+      "dashboard",
+      "extension",
       "node_modules",
       ".git",
+      ".firebaserc",
+      "firebase.json",
       "firebase-debug.log",
       "firebase-debug.*.log"
     ]
