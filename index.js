@@ -9,7 +9,7 @@ const Evaluation = require('./models/Evaluation');
 const Organization = require('./models/Organization');
 
 const app = express();
-app.use(cors());
+// app.use(cors()); // Handled by Firebase Function options
 app.use(express.json());
 
 // Firebase Admin Initialization (Standard for Cloud Functions)
@@ -221,5 +221,10 @@ app.post('/api/admin/users/:uid/enable', authenticateToken, requireAdmin, async 
   }
 });
 
-const functions = require('firebase-functions');
-exports.api = functions.https.onRequest(app);
+const { onRequest } = require('firebase-functions/v2/https');
+
+exports.api = onRequest({ 
+  secrets: ["MONGODB_URI"],
+  cors: true,
+  maxInstances: 10 
+}, app);
